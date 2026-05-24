@@ -26,7 +26,7 @@ jobs:
         pip install flake8 pytest
     
     - name: Lint with flake8
-      run: flake8 src/ --count --exit-zero --max-complexity=10
+      run: flake8 src/
     
     - name: Run tests
-      run: pytest tests/ --cov=src
+      run: pytest tests/
