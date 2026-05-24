@@ -1,8 +1,3 @@
-**Here's a clean, professional, and well-structured `README.md` file** for your project:
-
----
-
-```markdown
 # Insurance Risk Analytics & Predictive Modeling
 
 **End-to-End Risk Analysis & Dynamic Pricing for Auto Insurance**  
@@ -142,23 +137,3 @@ AlphaCare Insurance Solutions
 ---
 
 **Built with ❤️ for data-driven insurance innovation**
-```
-
----
-
-### How to use this:
-
-1. Copy the entire content above
-2. Create a new file in your project root called `README.md`
-3. Paste the content
-4. Replace `yourusername` with your actual GitHub username
-5. Save and commit
-
----
-
-Would you also like me to write:
-- A more detailed version with actual findings (after EDA)?
-- The `requirements.txt` file?
-- The `final_report.md` skeleton?
-
-Just tell me what you need next!
