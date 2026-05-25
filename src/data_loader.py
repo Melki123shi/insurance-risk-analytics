@@ -17,8 +17,9 @@ def load_insurance_data(
     clean_column_names: bool = True
 ) -> pd.DataFrame:
     """
-    Load the AlphaCare insurance dataset with proper data types and basic cleaning.
-    
+    Load the AlphaCare insurance dataset with proper data types and
+    basic cleaning.
+
     Parameters:
     -----------
     file_path : str
@@ -27,7 +28,7 @@ def load_insurance_data(
         Whether to parse date columns
     clean_column_names : bool
         Whether to standardize column names (remove spaces, etc.)
-    
+
     Returns:
     --------
     pd.DataFrame
@@ -36,11 +37,10 @@ def load_insurance_data(
     try:
         logger.info(f"Loading data from: {file_path}")
 
-        # Convert to Path object for better handling
         path = Path(file_path)
-
         if not path.exists():
-            raise FileNotFoundError(f"Data file not found at: {path}")
+            msg = f"Data file not found at: {path}"
+            raise FileNotFoundError(msg)
 
         # Load the data
         df = pd.read_csv(path, delimiter='|', low_memory=False)
@@ -61,14 +61,14 @@ def load_cleaned_data(
 ) -> pd.DataFrame:
     """
     Load the cleaned insurance dataset for modeling.
-    
+
     Parameters:
     -----------
     file_path : str
         Path to the cleaned insurance data csv file
     parse_dates : bool
         Whether to parse date columns
-    
+
     Returns:
     --------
     pd.DataFrame
@@ -87,7 +87,8 @@ def load_cleaned_data(
         # Load the cleaned data
         df = pd.read_csv(path, parse_dates=parse_dates)
 
-        logger.info(f"✅ Cleaned data loaded successfully! Shape: {df.shape}")
+        msg = f"✅ Cleaned data loaded successfully! Shape: {df.shape}"
+        logger.info(msg)
         logger.info(f"Columns: {list(df.columns)}")
 
         return df

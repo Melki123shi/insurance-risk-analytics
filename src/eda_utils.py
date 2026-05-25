@@ -141,10 +141,10 @@ def verify_column_types(
         print("\n📅 Date Columns:")
         for col in date_cols:
             if col in df.columns:
-                is_correct = pd.api.types.is_datetime64_any_dtype(df[col])
-                status = "✅" if is_correct else "❌"
+                is_dt = pd.api.types.is_datetime64_any_dtype(df[col])
+                status = "✅" if is_dt else "❌"
                 print(f"  {status} {col:30} → {df[col].dtype}")
-                if not is_correct:
+                if not is_dt:
                     all_correct = False
 
     # Verify numerical columns
@@ -205,9 +205,8 @@ def check_data_quality(df: pd.DataFrame) -> pd.DataFrame:
 
     # Duplicates
     duplicates = df.duplicated().sum()
-    print(f"\nDuplicate Rows: {duplicates:,} ({(duplicates / len(df) * 100):.2f}%)")
-
-    return missing_df
+    dup_pct = (duplicates / len(df) * 100)
+    print(f"\nDuplicate Rows: {duplicates:,} ({dup_pct:.2f}%)")
 
 
 def handle_missing_values(
@@ -248,11 +247,13 @@ def handle_missing_values(
     # =========================================================
     # 2. DROP HIGH-MISSING COLUMNS
     # =========================================================
-    cols_to_drop = missing_ratio[missing_ratio > drop_col_threshold].index.tolist()
+    cols_to_drop = (
+        missing_ratio[missing_ratio > drop_col_threshold].index.tolist()
+    )
 
+    pct = drop_col_threshold * 100
     print(
-        f"\n🗑️ Dropping {len(cols_to_drop)} columns "
-        f"(> {drop_col_threshold * 100:.0f}% missing)"
+        f"\n🗑️ Dropping {len(cols_to_drop)} columns (> {pct:.0f}% missing)"
     )
 
     if cols_to_drop:
@@ -263,9 +264,10 @@ def handle_missing_values(
     # =========================================================
     # 3. DROP ROWS FOR LOW-MISSING COLUMNS
     # =========================================================
+    pct_row = drop_row_threshold * 100
     print(
         f"\n📉 Dropping rows for columns with "
-        f"≤ {drop_row_threshold * 100:.0f}% missing..."
+        f"≤ {pct_row:.0f}% missing..."
     )
 
     for col in df.columns:
@@ -278,9 +280,12 @@ def handle_missing_values(
 
             rows_dropped = rows_before - len(df)
 
-            print(
-                f"   → {col:30} Dropped {rows_dropped:,} rows ({miss_ratio * 100:.2f}%)"
+            miss_pct = miss_ratio * 100
+            msg = (
+                f"   → {col:30} Dropped {rows_dropped:,} rows "
+                f"({miss_pct:.2f}%)"
             )
+            print(msg)
 
     # =========================================================
     # 4. HANDLE DERIVED METRICS FIRST
@@ -344,11 +349,15 @@ def handle_missing_values(
         if df[col].dtype == "object" or str(df[col].dtype) == "category":
             mode_series = df[col].mode()
 
-            fill_val = mode_series.iloc[0] if not mode_series.empty else "Unknown"
+            if not mode_series.empty:
+                fill_val = mode_series.iloc[0]
+            else:
+                fill_val = "Unknown"
 
             df[col] = df[col].fillna(fill_val)
 
-            print(f"   {col:30} → Mode: '{fill_val}' ({miss_pct:.2f}%)")
+            msg = f"   {col:30} → Mode: '{fill_val}' ({miss_pct:.2f}%)"
+            print(msg)
 
         # Numeric columns
         else:
@@ -428,7 +437,6 @@ def remove_duplicate_rows(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-
 def check_missing_values(df: pd.DataFrame):
     """Check for missing values and print summary."""
     print("=" * 70)
@@ -447,7 +455,7 @@ def check_missing_values(df: pd.DataFrame):
         print("Top 5 Columns with Missing Values:")
         print(missing_df.head())
 
-    return 
+    return
 
 
 # ====================== UNIVARIATE ANALYSIS ======================
@@ -472,12 +480,15 @@ def plot_numerical_distributions(
     n_cols = len(columns)
     # Use 3 columns for odd number of features, 2 for even
     n_subplot_cols = 3 if n_cols % 2 == 1 else 2
-    n_subplot_rows = (n_cols + n_subplot_cols - 1) // n_subplot_cols  # ceiling division
-    
+    # ceiling division
+    n_subplot_rows = (n_cols + n_subplot_cols - 1) // n_subplot_cols
+
     plt.figure(figsize=figsize)
     for i, col in enumerate(columns, 1):
         plt.subplot(n_subplot_rows, n_subplot_cols, i)
-        sns.histplot(df[col].dropna(), kde=True, bins=30, color="skyblue")
+        sns.histplot(
+            df[col].dropna(), kde=True, bins=30, color="skyblue"
+        )
         plt.title(f"Distribution of {col}")
         plt.xlabel(col)
     plt.tight_layout()
@@ -497,7 +508,10 @@ def get_categorical_columns(df: pd.DataFrame) -> List[str]:
 
 
 def plot_categorical_distributions(
-    df: pd.DataFrame, columns: List[str], top_n=10, figsize=(30, 24)
+    df: pd.DataFrame,
+    columns: List[str],
+    top_n: int = 10,
+    figsize: tuple = (30, 24),
 ):
     """Plot bar charts for important categorical columns."""
     plt.figure(figsize=figsize)
@@ -508,7 +522,9 @@ def plot_categorical_distributions(
     for i, col in enumerate(columns, 1):
         plt.subplot(n_subplot_rows, n_subplot_cols, i)
         top_cats = df[col].value_counts().head(top_n)
-        sns.barplot(x=top_cats.values, y=top_cats.index, palette="viridis")
+        sns.barplot(
+            x=top_cats.values, y=top_cats.index, palette="viridis"
+        )
         plt.title(f"Top {top_n} {col}")
         plt.xlabel("Count")
     plt.tight_layout()
@@ -541,7 +557,14 @@ def plot_correlation_matrix(df: pd.DataFrame):
     plt.figure(figsize=(14, 12))
     corr = df[num_cols].corr()
     mask = np.triu(np.ones_like(corr, dtype=bool))
-    sns.heatmap(corr, mask=mask, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
+    sns.heatmap(
+        corr,
+        mask=mask,
+        annot=True,
+        cmap="coolwarm",
+        fmt=".2f",
+        linewidths=0.5,
+    )
     plt.title("Correlation Matrix - Numerical Features")
     plt.show()
 
@@ -555,10 +578,18 @@ def analyze_geographic_trends(df: pd.DataFrame):
 
     province_summary = (
         df.groupby("Province")
-        .agg({"TotalPremium": "sum", "TotalClaims": "sum", "PolicyID": "nunique"})
+        .agg({
+            "TotalPremium": "sum",
+            "TotalClaims": "sum",
+            "PolicyID": "nunique",
+        })
         .assign(
-            LossRatio=lambda x: (x["TotalClaims"] / x["TotalPremium"] * 100).round(2),
-            AvgPremium=lambda x: (x["TotalPremium"] / x["PolicyID"]).round(2),
+            LossRatio=lambda x: (
+                x["TotalClaims"] / x["TotalPremium"] * 100
+            ).round(2),
+            AvgPremium=lambda x: (
+                x["TotalPremium"] / x["PolicyID"]
+            ).round(2),
         )
     )
 
@@ -582,20 +613,25 @@ def analyze_geographic_trends(df: pd.DataFrame):
 
 def analyze_vehicle_makes(df: pd.DataFrame, top_n=10):
     """Top vehicle makes by claims and premium."""
-    make_summary = (
-        df.groupby("make")
-        .agg({"TotalClaims": "sum", "TotalPremium": "sum"})
-        .assign(
-            LossRatio=lambda x: (x["TotalClaims"] / x["TotalPremium"] * 100).round(2)
-        )
-        .sort_values("TotalClaims", ascending=False)
-    )
+    make_summary = (df.groupby("make")
+                    .agg({
+                        "TotalClaims": "sum",
+                        "TotalPremium": "sum"
+                    })
+                    .assign(LossRatio=lambda x: (
+                        x["TotalClaims"] / x["TotalPremium"] * 100
+                    ).round(2))
+                    .sort_values("TotalClaims", ascending=False))
 
     print(f"\nTop {top_n} Vehicle Makes by Total Claims:")
     print(make_summary.head(top_n))
 
     plt.figure(figsize=(12, 6))
-    sns.barplot(data=make_summary.head(top_n).reset_index(), x="TotalClaims", y="make")
+    sns.barplot(
+        data=make_summary.head(top_n).reset_index(),
+        x="TotalClaims",
+        y="make",
+    )
     plt.title(f"Top {top_n} Vehicle Makes by Total Claims")
     plt.show()
 
@@ -621,8 +657,11 @@ def detect_outliers(df: pd.DataFrame, columns: List[str]):
         Q1 = df[col].quantile(0.25)
         Q3 = df[col].quantile(0.75)
         IQR = Q3 - Q1
-        outliers = ((df[col] < Q1 - 1.5 * IQR) | (df[col] > Q3 + 1.5 * IQR)).sum()
-        print(f"{col:25}: {outliers:,} outliers ({outliers / len(df) * 100:.2f}%)")
+        lower = Q1 - 1.5 * IQR
+        upper = Q3 + 1.5 * IQR
+        outliers = ((df[col] < lower) | (df[col] > upper)).sum()
+        pct = outliers / len(df) * 100
+        print(f"{col:25}: {outliers:,} outliers ({pct:.2f}%)")
 
 
 # ====================== HELPER FUNCTIONS ======================
@@ -637,8 +676,220 @@ def create_derived_metrics(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def save_cleaned_data(
-    df: pd.DataFrame, filename: str = "../data/processed/cleaned_insurance_data.csv"
+    df: pd.DataFrame,
+    filename: str = "../data/processed/cleaned_insurance_data.csv",
 ):
     """Save the cleaned dataset to a CSV file."""
     df.to_csv(filename, index=False)
     print(f"Cleaned data saved to {filename}")
+
+
+def portfolio_loss_ratio_analysis(df: pd.DataFrame) -> dict:
+    """
+    Answers: Overall Loss Ratio + variation by Province, VehicleType.
+    """
+    print("=" * 70)
+    print("PORTFOLIO LOSS RATIO ANALYSIS")
+    print("=" * 70)
+
+    # Overall
+    total_premium = df['TotalPremium'].sum()
+    total_claims = df['TotalClaims'].sum()
+    if total_premium != 0:
+        overall_lr = (total_claims / total_premium * 100)
+    else:
+        overall_lr = 0
+
+    print(f"Overall Portfolio Loss Ratio: {overall_lr:.2f}%")
+
+    # By Province
+    province_lr = (df.groupby('Province').agg(
+        TotalPremium=('TotalPremium', 'sum'),
+        TotalClaims=('TotalClaims', 'sum')
+    ).assign(LossRatio=lambda x: (
+        x['TotalClaims'] / x['TotalPremium'] * 100
+    ).round(2)).sort_values('LossRatio', ascending=False))
+
+    print("\nTop 5 Highest Loss Ratio Provinces:")
+    print(province_lr.head())
+
+    # By VehicleType
+    veh_lr = (df.groupby('VehicleType').agg(
+        TotalPremium=('TotalPremium', 'sum'),
+        TotalClaims=('TotalClaims', 'sum')
+    ).assign(LossRatio=lambda x: (
+        x['TotalClaims'] / x['TotalPremium'] * 100
+    ).round(2)).sort_values('LossRatio', ascending=False))
+
+    print("\nTop 5 Highest Loss Ratio Vehicle Types:")
+    print(veh_lr.head())
+
+    # By Gender
+    gender_lr = (df.groupby('Gender').agg(
+        TotalPremium=('TotalPremium', 'sum'),
+        TotalClaims=('TotalClaims', 'sum')
+    ).assign(LossRatio=lambda x: (
+        x['TotalClaims'] / x['TotalPremium'] * 100
+    ).round(2)))
+
+    print("\nLoss Ratio by Gender:")
+    print(gender_lr)
+
+    return {
+        'overall': overall_lr,
+        'province': province_lr,
+        'vehicle_type': veh_lr,
+        'gender': gender_lr
+    }
+
+
+def plot_financial_distributions_and_outliers(df: pd.DataFrame):
+    """
+    Answers: Distributions of key financial variables + Outliers.
+    Creates 2 insightful plots.
+    """
+    key_cols = [
+        'TotalPremium', 'TotalClaims', 'LossRatio', 'Margin',
+        'SumInsured', 'TotalClaims'
+    ]
+
+    # Plot 1: Distributions with Log Scale (handles skewness)
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+    axes = axes.ravel()
+
+    for i, col in enumerate(key_cols):
+        sns.histplot(
+            df[col].dropna(),
+            kde=True,
+            bins=50,
+            ax=axes[i],
+            color='skyblue',
+            log_scale=(True, False)
+        )
+        axes[i].set_title(f'Distribution of {col} (Log Scale)')
+        axes[i].set_xlabel(col)
+
+    plt.tight_layout()
+    suptitle = 'Key Financial Variables Distributions (Log Scale)'
+    plt.suptitle(suptitle, y=1.02, fontsize=16)
+    plt.show()
+
+    # Plot 2: Box plots for Outlier Detection
+    plt.figure(figsize=(14, 8))
+    sns.boxplot(data=df[key_cols], orient='h', palette='Set2')
+    title = 'Outlier Detection in Key Financial Variables (Box Plots)'
+    plt.title(title)
+    plt.xlabel('Value')
+    plt.tight_layout()
+    plt.show()
+
+    print("Note: Significant outliers detected in TotalClaims.")
+
+
+def analyze_temporal_trends(df: pd.DataFrame):
+    """
+    Answers: Are there temporal trends in claim frequency and severity?
+    """
+    df = df.copy()
+    df['TransactionMonth'] = pd.to_datetime(df['TransactionMonth'])
+    df['YearMonth'] = df['TransactionMonth'].dt.to_period('M')
+
+    monthly = df.groupby('YearMonth').agg(
+        TotalPremium=('TotalPremium', 'sum'),
+        TotalClaims=('TotalClaims', 'sum'),
+        PolicyCount=('PolicyID', 'nunique'),
+        AvgClaim=('TotalClaims', 'mean')
+    ).assign(
+        LossRatio=lambda x: (
+            x['TotalClaims'] / x['TotalPremium'] * 100
+        ).round(2),
+        ClaimFrequency=lambda x: x['TotalClaims'] / x['PolicyCount']
+    )
+
+    print("Monthly Trends Summary:")
+    print(monthly.tail(10))
+
+    # Plot 3: Temporal Trends
+    fig, axes = plt.subplots(2, 2, figsize=(16, 10))
+
+    monthly['LossRatio'].plot(
+        ax=axes[0, 0], marker='o', color='red',
+        title='Monthly Loss Ratio Trend'
+    )
+    monthly['ClaimFrequency'].plot(
+        ax=axes[0, 1], marker='o', color='orange',
+        title='Claim Frequency Trend'
+    )
+    monthly['AvgClaim'].plot(
+        ax=axes[1, 0], marker='o', color='blue',
+        title='Average Claim Severity Trend'
+    )
+    monthly['PolicyCount'].plot(
+        ax=axes[1, 1], marker='o', color='green',
+        title='Policy Volume Trend'
+    )
+
+    plt.tight_layout()
+    suptitle = 'Temporal Trends in Claims (Feb 2014 - Aug 2015)'
+    plt.suptitle(suptitle, y=1.02, fontsize=16)
+    plt.show()
+
+    return monthly
+
+
+def analyze_vehicle_risk(df: pd.DataFrame, top_n: int = 10):
+    """
+    Answers: Which vehicle makes have highest and lowest claim amounts?
+    """
+    make_summary = df.groupby('make').agg(
+        TotalClaims=('TotalClaims', 'sum'),
+        TotalPremium=('TotalPremium', 'sum'),
+        PolicyCount=('PolicyID', 'nunique')
+    ).assign(
+        AvgClaim=lambda x: x['TotalClaims'] / x['PolicyCount'],
+        LossRatio=lambda x: (
+            x['TotalClaims'] / x['TotalPremium'] * 100
+        ).round(2)
+    ).sort_values('TotalClaims', ascending=False)
+
+    print(f"\nTop {top_n} Highest Claim Vehicle Makes:")
+    cols = ['TotalClaims', 'AvgClaim', 'LossRatio']
+    print(make_summary.head(top_n)[cols])
+
+    print(f"\nTop {top_n} Lowest Claim Vehicle Makes:")
+    print(make_summary.tail(top_n)[cols])
+
+    # Plot 4: Top Makes by Claims vs Premium
+    top_makes = make_summary.head(top_n)
+
+    fig, ax = plt.subplots(figsize=(14, 8))
+    x = range(len(top_makes))
+    width = 0.35
+
+    ax.bar(
+        [i - width/2 for i in x],
+        top_makes['TotalClaims'],
+        width,
+        label='Total Claims',
+        color='salmon',
+        alpha=0.8
+    )
+    ax.bar(
+        [i + width/2 for i in x],
+        top_makes['TotalPremium'],
+        width,
+        label='Total Premium',
+        color='lightblue',
+        alpha=0.8
+    )
+
+    ax.set_xlabel('Vehicle Make')
+    ax.set_ylabel('Amount (Rand)')
+    ax.set_title(f'Top {top_n} Vehicle Makes: Claims vs Premium')
+    ax.set_xticks(x)
+    ax.set_xticklabels(top_makes.index, rotation=45, ha='right')
+    ax.legend()
+    plt.tight_layout()
+    plt.show()
+
+    return make_summary
