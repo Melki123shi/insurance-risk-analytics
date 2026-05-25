@@ -111,6 +111,52 @@ jupyter notebook
 
 ---
 
+## 🔄 Reproducing the Data Pipeline
+
+### 1. Initialize DVC in the project
+```bash
+dvc init
+```
+
+### 2. Set up local remote storage
+```bash
+# Create a storage directory outside the project
+mkdir  /path/to/local/storage 
+
+# Add it as a DVC remote
+dvc remote add -d myremote  /path/to/local/storage
+```
+
+### 3. Track the dataset with DVC
+```bash
+dvc add data/insurance_data.csv
+git add data/insurance_data.csv.dvc data/.gitignore
+git commit -m "Track insurance dataset with DVC"
+```
+
+### 4. Create multiple data versions
+```bash
+# Version 1: Raw data
+cp data/insurance_data.csv data/insurance_data_raw.csv
+dvc add data/insurance_data_raw.csv
+
+# Version 2: Cleaned data
+# (After running cleaning pipeline)
+dvc add data/insurance_data_cleaned.csv
+```
+
+### 5. Push data versions to local remote
+```bash
+dvc push
+```
+
+### 6. To reproduce on another machine
+```bash
+dvc pull  # Restore all tracked data versions from remote storage
+```
+
+---
+
 ## 📝 Final Deliverables
 
 - Full GitHub repository with CI/CD
