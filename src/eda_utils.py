@@ -677,7 +677,7 @@ def create_derived_metrics(df: pd.DataFrame) -> pd.DataFrame:
 
 def save_cleaned_data(
     df: pd.DataFrame,
-    filename: str = "../data/processed/cleaned_insurance_data.csv",
+    filename: str = "../data/processed/insurance_data.csv",
 ):
     """Save the cleaned dataset to a CSV file."""
     df.to_csv(filename, index=False)
