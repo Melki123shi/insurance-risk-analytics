@@ -5,14 +5,14 @@ Data Loading Utilities for AlphaCare Insurance Risk Analytics
 import pandas as pd
 import logging
 from pathlib import Path
-from typing import Optional
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def load_insurance_data(
-    file_path: str ,
+    file_path: str,
     parse_dates: bool = True,
     clean_column_names: bool = True
 ) -> pd.DataFrame:
@@ -35,25 +35,26 @@ def load_insurance_data(
     """
     try:
         logger.info(f"Loading data from: {file_path}")
-        
+
         # Convert to Path object for better handling
         path = Path(file_path)
-        
+
         if not path.exists():
             raise FileNotFoundError(f"Data file not found at: {path}")
-        
+
         # Load the data
-        df = pd.read_csv(path, delimiter='|', low_memory=False)  
-               
+        df = pd.read_csv(path, delimiter='|', low_memory=False)
+
         logger.info(f"✅ Data loaded successfully! Shape: {df.shape}")
         logger.info(f"Columns: {list(df.columns)}")
-        
+
         return df
-    
+
     except Exception as e:
         logger.error(f"❌ Error loading data: {str(e)}")
         raise
-    
+
+
 def load_cleaned_data(
     file_path: str,
     parse_dates: bool = True
@@ -75,21 +76,22 @@ def load_cleaned_data(
     """
     try:
         logger.info(f"Loading cleaned data from: {file_path}")
-        
+
         # Convert to Path object for better handling
         path = Path(file_path)
-        
+
         if not path.exists():
-            raise FileNotFoundError(f"Cleaned data file not found at: {path}")
-        
+            msg = f"Cleaned data file not found at: {path}"
+            raise FileNotFoundError(msg)
+
         # Load the cleaned data
-        df = pd.read_csv(path, parse_dates=parse_dates)  
-               
+        df = pd.read_csv(path, parse_dates=parse_dates)
+
         logger.info(f"✅ Cleaned data loaded successfully! Shape: {df.shape}")
         logger.info(f"Columns: {list(df.columns)}")
-        
+
         return df
-    
+
     except Exception as e:
         logger.error(f"❌ Error loading cleaned data: {str(e)}")
         raise

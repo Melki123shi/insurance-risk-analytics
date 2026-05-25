@@ -178,7 +178,9 @@ def check_data_quality(df: pd.DataFrame) -> pd.DataFrame:
     print("=" * 70)
 
     pd.to_datetime(df["TransactionMonth"], errors="raise")
-    df["TransactionMonth"] = pd.to_datetime(df["TransactionMonth"], errors="coerce")
+    df["TransactionMonth"] = pd.to_datetime(
+        df["TransactionMonth"], errors="coerce"
+    )
     print(f"Parsed {df['TransactionMonth']} as datetime.")
 
     # Replace empty strings with NaN for better analysis
@@ -187,7 +189,10 @@ def check_data_quality(df: pd.DataFrame) -> pd.DataFrame:
     missing = df.isnull().sum()
     missing_pct = (missing / len(df)) * 100
     missing_df = pd.DataFrame(
-        {"Missing Count": missing, "Missing %": missing_pct.round(2)}
+        {
+            "Missing Count": missing,
+            "Missing %": missing_pct.round(2),
+        }
     ).sort_values("Missing %", ascending=False)
 
     missing_df = missing_df[missing_df["Missing Count"] > 0]
