@@ -6,3 +6,5 @@ scipy
 scikit-learn
 jupyter
 flake8
+xgboost
+shap
